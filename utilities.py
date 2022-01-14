@@ -10,7 +10,7 @@ def get_formula_as_list(formula_str):
     while formula_str[0] == '(' and formula_str[-1] == ')':
         formula_str = formula_str[1:-1]
 
-    formula_str = re.compile(r"(\b(?!and|or|then|iff|not|\(\w+\)\b)\w+)").sub(r"(\1)", formula_str)
+    formula_str = re.compile(r"(\b(?!and|or|then|iff|not|NOR|NAND|XOR\(\w+\)\b)\w+)").sub(r"(\1)", formula_str)
     formula_str = '(' + formula_str + ')'
     formula_str = re.compile(r'(\w+)').sub(r"'\1'", formula_str)
     formula_str = formula_str.replace('(', '[').replace(')', ']')

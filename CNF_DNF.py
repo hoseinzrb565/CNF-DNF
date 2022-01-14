@@ -32,6 +32,7 @@ def DNF(formula_lst):
 
 
 def CNF(formula_lst):
+
     not_formula = []
     not_formula.append('not')
     not_formula.append(formula_lst)

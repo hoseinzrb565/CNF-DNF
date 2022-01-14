@@ -2,38 +2,51 @@ import re
 import ast
 
 variables = []
-connectives = ['not', 'and', 'or', 'then', 'iff', 'NOR', 'NAND', 'XOR']
+connectives = ['not', 'and', 'or', 'then', 'iff', 'XOR', 'NOR', "NAND"]
 
 
 def get_formula_as_list(formula_str):
 
+    while formula_str[0] == '(' and formula_str[-1] == ')':
+        formula_str = formula_str[1:-1]
+
+    formula_str = re.compile(r"(\b(?!and|or|then|iff|not|\(\w+\)\b)\w+)").sub(r"(\1)", formula_str)
+    formula_str = '(' + formula_str + ')'
     formula_str = re.compile(r'(\w+)').sub(r"'\1'", formula_str)
-    formula_list = ast.literal_eval('[' + formula_str.replace('(', '[').replace(')', ']') + ']')
-    while len(formula_list) == 1 and isinstance(formula_list[0], list):
-        formula_list = formula_list[0]
+    formula_str = formula_str.replace('(', '[').replace(')', ']')
 
-    get_list_of_variables(formula_list)
-    return formula_list
+    formula_lst = ast.literal_eval(formula_str)
+
+    if isinstance(formula_lst, tuple):
+        formula_lst = ast.literal_eval('[' + formula_str + ']')
+
+    get_list_of_variables(formula_lst)
+
+    return formula_lst
 
 
-def get_list_of_variables(formula):
-    if not isinstance(formula, list):
-        if not formula in connectives and not formula in variables:
-            variables.append(formula)
+def get_list_of_variables(formula_lst):
+
+    if not isinstance(formula_lst, list):
         return
 
-    get_list_of_variables(formula[0])
+    if len(formula_lst) == 1 :
+        if isinstance(formula_lst[0], list) and not formula_lst[0][0] in variables:
+            variables.append(formula_lst[0][0])
+        elif not isinstance(formula_lst[0], list) and not formula_lst[0] in variables:
+            variables.append(formula_lst[0])
 
-    if len(formula) > 1:
+    elif len(formula_lst) > 1:
 
-        get_list_of_variables(formula[1])
+        get_list_of_variables(formula_lst[0])
+        get_list_of_variables(formula_lst[1])
 
-        if len(formula) == 3:
-            get_list_of_variables(formula[2])
+        if len(formula_lst) == 3:
+            get_list_of_variables(formula_lst[2])
 
 
-def get_indexed_formula(formula):
-    indexed_formula = formula
+def get_indexed_formula(formula_lst):
+    indexed_formula = formula_lst
 
     for variable in variables:
         indexed_formula = str(indexed_formula). \
@@ -42,23 +55,23 @@ def get_indexed_formula(formula):
     return ast.literal_eval(indexed_formula)
 
 
-def valuation(formula, truth_bits):
-    formula = get_indexed_formula(formula)
+def valuation(formula_lst, truth_bits):
+    indexed_formula = get_indexed_formula(formula_lst)
 
-    if isinstance(formula, int):
-        return truth_bits[formula]
+    if isinstance(indexed_formula, int):
+        return truth_bits[indexed_formula]
 
-    elif len(formula) == 1:
-        return str(int(valuation(formula[0], truth_bits)))
+    elif len(indexed_formula) == 1:
+        return str(int(valuation(indexed_formula[0], truth_bits)))
 
-    elif len(formula) == 2:
-            if formula[0] == 'not':
-                return str((int(valuation(formula[1], truth_bits)) + 1) % 2)
+    elif len(indexed_formula) == 2:
+            if indexed_formula[0] == 'not':
+                return str((int(valuation(indexed_formula[1], truth_bits)) + 1) % 2)
 
-    elif len(formula) == 3:
-        a = valuation(formula[0], truth_bits)
-        connective = formula[1]
-        b = valuation(formula[2], truth_bits)
+    elif len(indexed_formula) == 3:
+        a = valuation(indexed_formula[0], truth_bits)
+        connective = indexed_formula[1]
+        b = valuation(indexed_formula[2], truth_bits)
 
         if connective == 'and':
             if a == '1' and b == '1':
@@ -99,19 +112,19 @@ def valuation(formula, truth_bits):
         print("error: invalid input.")
 
 
-def get_trues(formula):
+def get_trues(formula_lst):
     trues = []
 
     for i in range(0, pow(2, len(variables))):
         truth_bit = format(i, '#0' + str((len(variables) + 2)) + 'b')[2:]
-        if valuation(formula, truth_bit) == '1':
+        if valuation(formula_lst, truth_bit) == '1':
             trues.append(truth_bit)
 
     return trues
 
 
-def is_tautology(formula):
-    trues = get_trues(formula)
+def is_tautology(formula_lst):
+    trues = get_trues(formula_lst)
     if len(trues) == pow(2, len(variables)):
         return True
     return False
